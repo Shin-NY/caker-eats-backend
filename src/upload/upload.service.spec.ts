@@ -44,7 +44,6 @@ describe('UploadService', () => {
       });
       const result = await uploadService.uploadImage(
         testImage,
-        customerTestData,
       );
       expect(AWS.S3).toBeCalledTimes(1);
       expect(AWS.S3).toBeCalledWith({
@@ -67,7 +66,6 @@ describe('UploadService', () => {
       (AWS.S3.prototype.upload as jest.Mock).mockReturnValueOnce(new Error());
       const result = await uploadService.uploadImage(
         testImage,
-        customerTestData,
       );
       expect(result).toEqual({ ok: false, error: 'Cannot upload an image.' });
     });

@@ -38,3 +38,5 @@ lerna-debug.log*
 .dev.env
 .test.env
 .prod.env
+
+package-lock.json
