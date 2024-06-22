@@ -1,39 +1,39 @@
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { GraphQLModule } from '@nestjs/graphql';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserModule } from './user/user.module';
-import * as Joi from 'joi';
-import { User } from './user/entities/user.entity';
-import { JwtModule } from './jwt/jwt.module';
-import { AuthModule } from './auth/auth.module';
-import { Verification } from './user/entities/verification.entity';
-import { MailModule } from './mail/mail.module';
-import { RestaurantModule } from './restaurant/restaurant.module';
-import { Restaurant } from './restaurant/entities/restaurant.entity';
-import { Category } from './restaurant/entities/catergory.entitiy';
-import { Dish } from './restaurant/entities/dish.entity';
-import { OrderModule } from './order/order.module';
-import { Order } from './order/entities/order.entity';
-import { SharedModule } from './shared/shared.module';
-import { HEADER_TOKEN } from './jwt/jwt.constants';
-import { UploadModule } from './upload/upload.module';
-import { Promotion } from './user/entities/promotion.entity';
-import { ScheduleModule } from '@nestjs/schedule';
+import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { GraphQLModule } from "@nestjs/graphql";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { UserModule } from "./user/user.module";
+import * as Joi from "joi";
+import { User } from "./user/entities/user.entity";
+import { JwtModule } from "./jwt/jwt.module";
+import { AuthModule } from "./auth/auth.module";
+import { Verification } from "./user/entities/verification.entity";
+import { MailModule } from "./mail/mail.module";
+import { RestaurantModule } from "./restaurant/restaurant.module";
+import { Restaurant } from "./restaurant/entities/restaurant.entity";
+import { Category } from "./restaurant/entities/catergory.entitiy";
+import { Dish } from "./restaurant/entities/dish.entity";
+import { OrderModule } from "./order/order.module";
+import { Order } from "./order/entities/order.entity";
+import { SharedModule } from "./shared/shared.module";
+import { HEADER_TOKEN } from "./jwt/jwt.constants";
+import { UploadModule } from "./upload/upload.module";
+import { Promotion } from "./user/entities/promotion.entity";
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
-        process.env.NODE_ENV == 'production'
-          ? '.prod.env'
-          : process.env.NODE_ENV == 'development'
-          ? '.dev.env'
-          : '.test.env',
+        process.env.NODE_ENV == "production"
+          ? ".env"
+          : process.env.NODE_ENV == "development"
+          ? ".dev.env"
+          : ".test.env",
       validationSchema: Joi.object({
-        NODE_ENV: Joi.string().valid('development', 'production', 'test'),
+        NODE_ENV: Joi.string().valid("development", "production", "test"),
         DATABASE_URL: Joi.string(),
         JWT_KEY: Joi.string(),
         MAILGUN_API_KEY: Joi.string(),
@@ -45,7 +45,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       subscriptions: {
-        'graphql-ws': true,
+        "graphql-ws": true,
       },
       autoSchemaFile: true,
       context: ({ req, connectionParams }) => {
@@ -62,7 +62,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       },
     }),
     TypeOrmModule.forRoot({
-      type: 'postgres',
+      type: "postgres",
       url: process.env.DATABASE_URL,
       entities: [
         User,
@@ -73,7 +73,7 @@ import { ScheduleModule } from '@nestjs/schedule';
         Order,
         Promotion,
       ],
-      synchronize: process.env.NODE_ENV == 'development',
+      synchronize: process.env.NODE_ENV == "development",
     }),
     ScheduleModule.forRoot(),
     UserModule,
@@ -89,3 +89,4 @@ import { ScheduleModule } from '@nestjs/schedule';
   providers: [],
 })
 export class AppModule {}
+

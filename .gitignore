@@ -40,3 +40,4 @@ lerna-debug.log*
 .prod.env
 
 package-lock.json
+migrations/*
