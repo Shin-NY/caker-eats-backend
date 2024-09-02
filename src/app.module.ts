@@ -89,4 +89,3 @@ import { ScheduleModule } from "@nestjs/schedule";
   providers: [],
 })
 export class AppModule {}
-

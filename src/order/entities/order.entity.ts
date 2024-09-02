@@ -7,7 +7,7 @@ import {
 import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 import { SharedEntity } from 'src/shared/shared.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Column, Entity, ManyToOne, RelationId } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, RelationId } from 'typeorm';
 
 @ObjectType()
 @InputType('OrderDishOptionInput', { isAbstract: true })
@@ -40,6 +40,7 @@ export enum OrderStatus {
 registerEnumType(OrderStatus, { name: 'OrderStatus' });
 
 @Entity()
+@Index(['customer', 'createdAt'])
 @ObjectType()
 export class Order extends SharedEntity {
   @Column({ type: 'json' })
