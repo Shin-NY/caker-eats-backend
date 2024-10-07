@@ -25,7 +25,14 @@ export const gqlTest = (
 
 export const clearDB = async (app: INestApplication) => {
   const dataSource = app.get(DataSource);
-  await dataSource.dropDatabase();
+  const entities = dataSource.entityMetadatas;
+  const tableNames = entities.map(entity => `"${entity.tableName}"`).join(', ');
+  await dataSource.query(`TRUNCATE ${tableNames} CASCADE;`);
+};
+
+export const closeDB = async (app: INestApplication) => {
+  const dataSource = app.get(DataSource);
+  await dataSource.destroy();
 };
 
 export const createUserAndGetToken = async (

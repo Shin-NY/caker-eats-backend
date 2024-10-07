@@ -15,15 +15,12 @@ import {
   promotionE2E,
   restaurantE2E,
 } from './shared/data-e2e';
-import { clearDB, gqlTest } from './shared/utils-e2e';
+import { clearDB, createUserAndGetToken, gqlTest } from './shared/utils-e2e';
 import { UserService } from 'src/user/user.service';
 import { RestaurantService } from 'src/restaurant/restaurant.service';
 import { User } from 'src/user/entities/user.entity';
 import { CategoryService } from 'src/restaurant/category.service';
-
-jest.mock('mailgun-js', () => {
-  return () => ({ messages: () => ({ send: () => {} }) });
-});
+import { MailService } from 'src/mail/mail.service';
 
 describe('User Module (e2e)', () => {
   let app: INestApplication;
@@ -32,11 +29,15 @@ describe('User Module (e2e)', () => {
   let categoryService: CategoryService;
   let verificationsRepo: Repository<Verification>;
   let usersRepo: Repository<User>;
+  const mailService = { sendVerificationEmail: () => {} };
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(MailService)
+      .useValue(mailService)
+      .compile();
 
     app = module.createNestApplication();
     userService = module.get(UserService);
@@ -47,14 +48,15 @@ describe('User Module (e2e)', () => {
     await app.init();
   });
 
-  afterAll(async () => {
+  beforeEach(async () => {
     await clearDB(app);
+  });
+
+  afterAll(async () => {
     await app.close();
   });
 
   describe('user', () => {
-    let token: string;
-
     describe('createUser', () => {
       it('should create an admin', () => {
         return request(app.getHttpServer())
@@ -80,7 +82,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return an error if admin exists', () => {
+      it('should return an error if admin exists', async () => {
+        await createUserAndGetToken(app, adminE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .send({
@@ -130,7 +134,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return an error if email exists', () => {
+      it('should return an error if email exists', async () => {
+        await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .send({
@@ -183,7 +189,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return an error if password is invalid', () => {
+      it('should return an error if password is invalid', async () => {
+        await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .send({
@@ -208,7 +216,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return a token', () => {
+      it('should return a token', async () => {
+        await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .send({
@@ -230,7 +240,6 @@ describe('User Module (e2e)', () => {
             expect(res.body.data.login.ok).toEqual(true);
             expect(res.body.data.login.token).toEqual(expect.any(String));
             expect(res.body.data.login.error).toEqual(null);
-            token = res.body.data.login.token;
           });
       });
     });
@@ -258,7 +267,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return a user', () => {
+      it('should return a user', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .set({ [HEADER_TOKEN]: token })
@@ -285,11 +296,6 @@ describe('User Module (e2e)', () => {
     });
 
     describe('verifyEmail', () => {
-      let verification: Verification;
-      beforeAll(async () => {
-        [verification] = await verificationsRepo.find();
-      });
-
       it('should return an error if token is not provided', () => {
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
@@ -297,7 +303,7 @@ describe('User Module (e2e)', () => {
             query: `
           mutation {
             verifyEmail(input:{
-              code:"${verification.code}"
+              code:"code"
             }){
               ok
               error
@@ -311,7 +317,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return an error if code is invalid', () => {
+      it('should return an error if code is invalid', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .set({ [HEADER_TOKEN]: token })
@@ -336,7 +344,10 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should verify an email', () => {
+      it('should verify an email', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+        const [verification] = await verificationsRepo.find();
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .set({ [HEADER_TOKEN]: token })
@@ -383,7 +394,13 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return an error if email exists', () => {
+      it('should return an error if email exists', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+        await createUserAndGetToken(app, {
+          ...customerE2E,
+          email: 'email2@mail.com',
+        });
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .set({ [HEADER_TOKEN]: token })
@@ -391,7 +408,7 @@ describe('User Module (e2e)', () => {
             query: `
             mutation {
               editUser(input:{
-                email:"${customerE2E.email}",
+                email:"email2@mail.com",
               }){
                 ok
                 error
@@ -408,7 +425,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should edit a user', () => {
+      it('should edit a user', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .set({ [HEADER_TOKEN]: token })
@@ -453,7 +472,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should delete a user', () => {
+      it('should delete a user', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+
         return request(app.getHttpServer())
           .post(GRAPHQL_ENDPOINT)
           .set({ [HEADER_TOKEN]: token })
@@ -477,21 +498,10 @@ describe('User Module (e2e)', () => {
   });
 
   describe('promotion', () => {
-    let ownerToken: string;
-    beforeAll(async () => {
-      await userService.createUser({
-        email: ownerE2E.email,
-        password: ownerE2E.password,
-        role: ownerE2E.role,
-      });
-      ({ token: ownerToken } = await userService.login({
-        email: ownerE2E.email,
-        password: ownerE2E.password,
-      }));
-    });
-
     describe('createPromotion', () => {
-      it('should return error if role is not owner', () => {
+      it('should return error if role is not owner', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+
         return gqlTest(
           app,
           `
@@ -504,6 +514,7 @@ describe('User Module (e2e)', () => {
           }
         }
         `,
+          token,
         )
           .expect(200)
           .expect(res => {
@@ -511,7 +522,9 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return error if restaurant not exists', () => {
+      it('should return error if restaurant not exists', async () => {
+        const token = await createUserAndGetToken(app, ownerE2E);
+
         return gqlTest(
           app,
           `
@@ -524,7 +537,7 @@ describe('User Module (e2e)', () => {
           }
         }
         `,
-          ownerToken,
+          token,
         )
           .expect(200)
           .expect(res => {
@@ -536,6 +549,8 @@ describe('User Module (e2e)', () => {
       });
 
       it('should create promotion', async () => {
+        const token = await createUserAndGetToken(app, ownerE2E);
+
         await categoryService.createCategory({
           name: categoryE2E.name,
           imageUrl: categoryE2E.imageUrl,
@@ -561,7 +576,7 @@ describe('User Module (e2e)', () => {
           }
         }
         `,
-          ownerToken,
+          token,
         )
           .expect(200)
           .expect(res => {
@@ -572,7 +587,9 @@ describe('User Module (e2e)', () => {
     });
 
     describe('seePromotions', () => {
-      it('should return error if role is not owner', () => {
+      it('should return error if role is not owner', async () => {
+        const token = await createUserAndGetToken(app, customerE2E);
+
         return gqlTest(
           app,
           `
@@ -586,6 +603,7 @@ describe('User Module (e2e)', () => {
           }
         }
         `,
+          token,
         )
           .expect(200)
           .expect(res => {
@@ -593,7 +611,37 @@ describe('User Module (e2e)', () => {
           });
       });
 
-      it('should return promotions', () => {
+      it('should return promotions', async () => {
+        const token = await createUserAndGetToken(app, ownerE2E);
+
+        await categoryService.createCategory({
+          name: categoryE2E.name,
+          imageUrl: categoryE2E.imageUrl,
+        });
+        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
+        await restaurantService.createRestaurant(
+          {
+            name: restaurantE2E.name,
+            categorySlug: categoryE2E.slug,
+          },
+          owner,
+        );
+
+        await gqlTest(
+          app,
+          `
+        mutation {
+          createPromotion(input:{
+            transactionId:${promotionE2E.transactionId}
+          }) {
+            ok
+            error
+          }
+        }
+        `,
+          token,
+        );
+
         return gqlTest(
           app,
           `
@@ -607,7 +655,7 @@ describe('User Module (e2e)', () => {
           }
         }
         `,
-          ownerToken,
+          token,
         )
           .expect(200)
           .expect(res => {
