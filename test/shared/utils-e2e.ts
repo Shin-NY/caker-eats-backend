@@ -30,11 +30,6 @@ export const clearDB = async (app: INestApplication) => {
   await dataSource.query(`TRUNCATE ${tableNames} CASCADE;`);
 };
 
-export const closeDB = async (app: INestApplication) => {
-  const dataSource = app.get(DataSource);
-  await dataSource.destroy();
-};
-
 export const createUserAndGetToken = async (
   app: INestApplication,
   data: CreateUserInput,
@@ -47,4 +42,8 @@ export const createUserAndGetToken = async (
   });
 
   return token;
+};
+
+export const getMockedMailService = () => {
+  return { sendVerificationEmail: () => {} };
 };

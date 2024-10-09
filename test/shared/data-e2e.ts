@@ -41,6 +41,11 @@ export const restaurantE2E = {
   categorySlug: categoryE2E.slug,
 };
 
+export const restaurant2E2E = {
+  name: 'test restaurant 2',
+  categorySlug: categoryE2E.slug,
+};
+
 export const editedRestaurantE2E = {
   name: 'edited restaurant',
   categorySlug: categoryE2E.slug,

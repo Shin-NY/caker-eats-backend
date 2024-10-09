@@ -15,33 +15,40 @@ import {
   promotionE2E,
   restaurantE2E,
 } from './shared/data-e2e';
-import { clearDB, createUserAndGetToken, gqlTest } from './shared/utils-e2e';
+import {
+  clearDB,
+  createUserAndGetToken,
+  getMockedMailService,
+  gqlTest,
+} from './shared/utils-e2e';
 import { UserService } from 'src/user/user.service';
 import { RestaurantService } from 'src/restaurant/restaurant.service';
 import { User } from 'src/user/entities/user.entity';
 import { CategoryService } from 'src/restaurant/category.service';
 import { MailService } from 'src/mail/mail.service';
+import { PromotionService } from 'src/user/promotion.service';
 
 describe('User Module (e2e)', () => {
   let app: INestApplication;
   let userService: UserService;
   let restaurantService: RestaurantService;
   let categoryService: CategoryService;
+  let promotionService: PromotionService;
   let verificationsRepo: Repository<Verification>;
   let usersRepo: Repository<User>;
-  const mailService = { sendVerificationEmail: () => {} };
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(MailService)
-      .useValue(mailService)
+      .useValue(getMockedMailService())
       .compile();
 
     app = module.createNestApplication();
     userService = module.get(UserService);
     restaurantService = module.get(RestaurantService);
+    promotionService = module.get(PromotionService);
     categoryService = module.get(CategoryService);
     verificationsRepo = module.get(getRepositoryToken(Verification));
     usersRepo = module.get(getRepositoryToken(User));
@@ -618,7 +625,7 @@ describe('User Module (e2e)', () => {
           name: categoryE2E.name,
           imageUrl: categoryE2E.imageUrl,
         });
-        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
+        let owner = await usersRepo.findOneBy({ email: ownerE2E.email });
         await restaurantService.createRestaurant(
           {
             name: restaurantE2E.name,
@@ -626,21 +633,8 @@ describe('User Module (e2e)', () => {
           },
           owner,
         );
-
-        await gqlTest(
-          app,
-          `
-        mutation {
-          createPromotion(input:{
-            transactionId:${promotionE2E.transactionId}
-          }) {
-            ok
-            error
-          }
-        }
-        `,
-          token,
-        );
+        owner = await usersRepo.findOneBy({ email: ownerE2E.email });
+        await promotionService.createPromotion(promotionE2E, owner);
 
         return gqlTest(
           app,
