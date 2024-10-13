@@ -2,10 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AppModule } from 'src/app.module';
-import { CategoryService } from 'src/restaurant/category.service';
-import { RestaurantService } from 'src/restaurant/restaurant.service';
 import { User } from 'src/user/entities/user.entity';
-import { UserService } from 'src/user/user.service';
 import { Repository } from 'typeorm';
 import {
   adminE2E,
@@ -21,19 +18,17 @@ import {
 } from './shared/data-e2e';
 import {
   clearDB,
+  createCategory,
+  createDish,
+  createRestaurant,
   createUserAndGetToken,
   getMockedMailService,
   gqlTest,
 } from './shared/utils-e2e';
 import { MailService } from 'src/mail/mail.service';
-import { DishService } from 'src/restaurant/dish.service';
 
 describe('Restaurant Module (e2e)', () => {
   let app: INestApplication;
-  let userService: UserService;
-  let categoryService: CategoryService;
-  let restaurantService: RestaurantService;
-  let dishService: DishService;
   let usersRepo: Repository<User>;
 
   beforeAll(async () => {
@@ -45,10 +40,6 @@ describe('Restaurant Module (e2e)', () => {
       .compile();
 
     app = module.createNestApplication();
-    userService = module.get(UserService);
-    categoryService = module.get(CategoryService);
-    restaurantService = module.get(RestaurantService);
-    dishService = module.get(DishService);
     usersRepo = module.get(getRepositoryToken(User));
 
     await app.init();
@@ -64,7 +55,9 @@ describe('Restaurant Module (e2e)', () => {
 
   describe('category', () => {
     describe('createCategory', () => {
-      it('should return an error if not admin', () => {
+      it('should return an error if not admin', async () => {
+        const customerToken = await createUserAndGetToken(app, customerE2E);
+
         return gqlTest(
           app,
           `
@@ -78,6 +71,7 @@ describe('Restaurant Module (e2e)', () => {
           }
         }
     `,
+          customerToken,
         )
           .expect(200)
           .expect(res => {
@@ -86,7 +80,7 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should create category', async () => {
-        const token = await createUserAndGetToken(app, adminE2E);
+        const adminToken = await createUserAndGetToken(app, adminE2E);
 
         return gqlTest(
           app,
@@ -101,7 +95,7 @@ describe('Restaurant Module (e2e)', () => {
           }
         }
     `,
-          token,
+          adminToken,
         )
           .expect(200)
           .expect(res => {
@@ -111,8 +105,8 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return an error if slug already exists', async () => {
-        await categoryService.createCategory(categoryE2E);
-        const token = await createUserAndGetToken(app, adminE2E);
+        const adminToken = await createUserAndGetToken(app, adminE2E);
+        await createCategory(app, categoryE2E);
 
         return gqlTest(
           app,
@@ -127,7 +121,7 @@ describe('Restaurant Module (e2e)', () => {
           }
         }
     `,
-          token,
+          adminToken,
         )
           .expect(200)
           .expect(res => {
@@ -141,7 +135,7 @@ describe('Restaurant Module (e2e)', () => {
 
     describe('seeCategories', () => {
       it('should return categories', async () => {
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
 
         return gqlTest(
           app,
@@ -197,7 +191,7 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return category', async () => {
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
 
         return gqlTest(
           app,
@@ -227,7 +221,9 @@ describe('Restaurant Module (e2e)', () => {
     });
 
     describe('deleteCategory', () => {
-      it('should return an error if not admin', () => {
+      it('should return an error if not admin', async () => {
+        const customerToken = await createUserAndGetToken(app, customerE2E);
+
         return gqlTest(
           app,
           `
@@ -240,6 +236,7 @@ describe('Restaurant Module (e2e)', () => {
             }
           }
       `,
+          customerToken,
         )
           .expect(200)
           .expect(res => {
@@ -249,7 +246,7 @@ describe('Restaurant Module (e2e)', () => {
 
       it('should delete category', async () => {
         const token = await createUserAndGetToken(app, adminE2E);
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
 
         return gqlTest(
           app,
@@ -328,7 +325,7 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should create restaurant', async () => {
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
 
         return gqlTest(
@@ -353,11 +350,11 @@ describe('Restaurant Module (e2e)', () => {
           });
       });
 
-      it('should return error if restaurant already exists', async () => {
-        await categoryService.createCategory(categoryE2E);
+      it('should return error if owner already has restaurant', async () => {
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
         const [owner] = await usersRepo.find();
-        await restaurantService.createRestaurant(restaurantE2E, owner);
+        await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
@@ -384,11 +381,12 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return error if restaurant name already exists', async () => {
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
         await createUserAndGetToken(app, ownerE2E);
-        const token = await createUserAndGetToken(app, owner2E2E);
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        await restaurantService.createRestaurant(restaurantE2E, owner);
+        await createRestaurant(app, restaurantE2E, owner);
+
+        const token = await createUserAndGetToken(app, owner2E2E);
 
         return gqlTest(
           app,
@@ -417,10 +415,10 @@ describe('Restaurant Module (e2e)', () => {
 
     describe('seeRestaurants', () => {
       it('should return restaurants', async () => {
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
         await createUserAndGetToken(app, ownerE2E);
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        await restaurantService.createRestaurant(restaurantE2E, owner);
+        await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
@@ -482,21 +480,17 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return restaurant', async () => {
-        await categoryService.createCategory(categoryE2E);
+        await createCategory(app, categoryE2E);
         await createUserAndGetToken(app, ownerE2E);
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        const restaurantId = await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
           `
         {
           seeRestaurant(input:{
-            restaurantId:${createRestaurantRes.restaurantId!}
+            restaurantId:${restaurantId}
           }) {
             ok
             error
@@ -513,7 +507,7 @@ describe('Restaurant Module (e2e)', () => {
             expect(res.body.data.seeRestaurant.ok).toEqual(true);
             expect(res.body.data.seeRestaurant.error).toEqual(null);
             expect(res.body.data.seeRestaurant.result).toEqual({
-              id: createRestaurantRes.restaurantId,
+              id: restaurantId,
               name: restaurantE2E.name,
             });
           });
@@ -521,6 +515,14 @@ describe('Restaurant Module (e2e)', () => {
     });
 
     describe('editRestaurant', () => {
+      let ownerToken: string;
+      beforeEach(async () => {
+        await createCategory(app, categoryE2E);
+        ownerToken = await createUserAndGetToken(app, ownerE2E);
+        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
+        await createRestaurant(app, restaurantE2E, owner);
+      });
+
       it('should return an error if role is not owner', async () => {
         const token = await createUserAndGetToken(app, customerE2E);
 
@@ -545,8 +547,7 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return error if restaurant not exists', async () => {
-        await categoryService.createCategory(categoryE2E);
-        const token = await createUserAndGetToken(app, ownerE2E);
+        const token = await createUserAndGetToken(app, owner2E2E);
 
         return gqlTest(
           app,
@@ -572,26 +573,9 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return error if restaurant name already exists', async () => {
-        await categoryService.createCategory(categoryE2E);
-
-        await createUserAndGetToken(app, ownerE2E);
-        const token = await createUserAndGetToken(app, owner2E2E);
-
-        const owner1 = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes1 = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner1,
-        );
-        if (!createRestaurantRes1.ok)
-          throw Error('failed to create restaurant');
-
-        const owner2 = await usersRepo.findOneBy({ email: owner2E2E.email });
-        const createRestaurantRes2 = await restaurantService.createRestaurant(
-          restaurant2E2E,
-          owner2,
-        );
-        if (!createRestaurantRes2.ok)
-          throw Error('failed to create restaurant');
+        const newOwnertoken = await createUserAndGetToken(app, owner2E2E);
+        const newOwner = await usersRepo.findOneBy({ email: owner2E2E.email });
+        await createRestaurant(app, restaurant2E2E, newOwner);
 
         return gqlTest(
           app,
@@ -605,7 +589,7 @@ describe('Restaurant Module (e2e)', () => {
             }
           }
         `,
-          token,
+          newOwnertoken,
         )
           .expect(200)
           .expect(res => {
@@ -617,17 +601,6 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return error if category not exists', async () => {
-        await categoryService.createCategory(categoryE2E);
-
-        const token = await createUserAndGetToken(app, ownerE2E);
-
-        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
-
         return gqlTest(
           app,
           `
@@ -641,7 +614,7 @@ describe('Restaurant Module (e2e)', () => {
             }
           }
         `,
-          token,
+          ownerToken,
         )
           .expect(200)
           .expect(res => {
@@ -653,17 +626,6 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should edit restaurant', async () => {
-        await categoryService.createCategory(categoryE2E);
-
-        const token = await createUserAndGetToken(app, ownerE2E);
-
-        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
-
         return gqlTest(
           app,
           `
@@ -676,7 +638,7 @@ describe('Restaurant Module (e2e)', () => {
             }
           }
         `,
-          token,
+          ownerToken,
         )
           .expect(200)
           .expect(res => {
@@ -715,16 +677,10 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return searched restaurants', async () => {
-        await categoryService.createCategory(categoryE2E);
-
+        await createCategory(app, categoryE2E);
         await createUserAndGetToken(app, ownerE2E);
-
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
@@ -755,7 +711,7 @@ describe('Restaurant Module (e2e)', () => {
 
     describe('deleteRestaurant', () => {
       it('should return an error if role is not owner', async () => {
-        const token = await createUserAndGetToken(app, customerE2E);
+        const customerToken = await createUserAndGetToken(app, customerE2E);
 
         return gqlTest(
           app,
@@ -767,42 +723,11 @@ describe('Restaurant Module (e2e)', () => {
           }
         }
         `,
-          token,
+          customerToken,
         )
           .expect(200)
           .expect(res => {
             expect(res.body.errors[0].message).toEqual('Forbidden resource');
-          });
-      });
-
-      it('should delete restaurant', async () => {
-        await categoryService.createCategory(categoryE2E);
-
-        const token = await createUserAndGetToken(app, ownerE2E);
-
-        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
-
-        return gqlTest(
-          app,
-          `
-        mutation {
-          deleteRestaurant {
-            ok
-            error
-          }
-        }
-        `,
-          token,
-        )
-          .expect(200)
-          .expect(res => {
-            expect(res.body.data.deleteRestaurant.ok).toEqual(true);
-            expect(res.body.data.deleteRestaurant.error).toEqual(null);
           });
       });
 
@@ -829,13 +754,38 @@ describe('Restaurant Module (e2e)', () => {
             );
           });
       });
+
+      it('should delete restaurant', async () => {
+        await createCategory(app, categoryE2E);
+        const token = await createUserAndGetToken(app, ownerE2E);
+        const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
+        await createRestaurant(app, restaurantE2E, owner);
+
+        return gqlTest(
+          app,
+          `
+        mutation {
+          deleteRestaurant {
+            ok
+            error
+          }
+        }
+        `,
+          token,
+        )
+          .expect(200)
+          .expect(res => {
+            expect(res.body.data.deleteRestaurant.ok).toEqual(true);
+            expect(res.body.data.deleteRestaurant.error).toEqual(null);
+          });
+      });
     });
   });
 
   describe('dish', () => {
     describe('createDish', () => {
       it('should return an error if role is not owner', async () => {
-        const token = await createUserAndGetToken(app, customerE2E);
+        const customerToken = await createUserAndGetToken(app, customerE2E);
 
         return gqlTest(
           app,
@@ -851,7 +801,7 @@ describe('Restaurant Module (e2e)', () => {
           }
         }
         `,
-          token,
+          customerToken,
         )
           .expect(200)
           .expect(res => {
@@ -888,16 +838,10 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should create dish', async () => {
-        await categoryService.createCategory(categoryE2E);
-
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
-
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
@@ -926,7 +870,7 @@ describe('Restaurant Module (e2e)', () => {
 
     describe('editDish', () => {
       it('should return an error if role is not owner', async () => {
-        const token = await createUserAndGetToken(app, customerE2E);
+        const customerToken = await createUserAndGetToken(app, customerE2E);
 
         return gqlTest(
           app,
@@ -941,7 +885,7 @@ describe('Restaurant Module (e2e)', () => {
             }
           }
         `,
-          token,
+          customerToken,
         )
           .expect(200)
           .expect(res => {
@@ -977,16 +921,10 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return an error if dish not exists', async () => {
-        await categoryService.createCategory(categoryE2E);
-
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
-
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
@@ -1011,27 +949,20 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should edit dish', async () => {
-        await categoryService.createCategory(categoryE2E);
-
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
-
         let owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        await createRestaurant(app, restaurantE2E, owner);
 
         owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createDishRes = await dishService.createDish(dishE2E, owner);
-        if (!createDishRes.ok) throw Error('failed to create dish');
+        const dishId = await createDish(app, dishE2E, owner);
 
         return gqlTest(
           app,
           `
           mutation {
             editDish(input:{
-              dishId:${createDishRes.dishId},
+              dishId:${dishId},
               name:"${editedDishE2E.name}"
             }) {
               ok
@@ -1051,7 +982,7 @@ describe('Restaurant Module (e2e)', () => {
 
     describe('deleteDish', () => {
       it('should return an error if role is not owner', async () => {
-        const token = await createUserAndGetToken(app, customerE2E);
+        const customerToken = await createUserAndGetToken(app, customerE2E);
 
         return gqlTest(
           app,
@@ -1065,7 +996,7 @@ describe('Restaurant Module (e2e)', () => {
             }
           }
         `,
-          token,
+          customerToken,
         )
           .expect(200)
           .expect(res => {
@@ -1100,16 +1031,10 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should return an error if dish not exists', async () => {
-        await categoryService.createCategory(categoryE2E);
-
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
-
         const owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        await createRestaurant(app, restaurantE2E, owner);
 
         return gqlTest(
           app,
@@ -1133,27 +1058,20 @@ describe('Restaurant Module (e2e)', () => {
       });
 
       it('should delete dish', async () => {
-        await categoryService.createCategory(categoryE2E);
-
+        await createCategory(app, categoryE2E);
         const token = await createUserAndGetToken(app, ownerE2E);
-
         let owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createRestaurantRes = await restaurantService.createRestaurant(
-          restaurantE2E,
-          owner,
-        );
-        if (!createRestaurantRes.ok) throw Error('failed to create restaurant');
+        await createRestaurant(app, restaurantE2E, owner);
 
         owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-        const createDishRes = await dishService.createDish(dishE2E, owner);
-        if (!createDishRes.ok) throw Error('failed to create dish');
+        const dishId = await createDish(app, dishE2E, owner);
 
         return gqlTest(
           app,
           `
           mutation {
             deleteDish(input:{
-              dishId:${createDishRes.dishId}
+              dishId:${dishId}
             }) {
               ok
               error

@@ -3,9 +3,6 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AppModule } from 'src/app.module';
 import { OrderStatus } from 'src/order/entities/order.entity';
-import { CategoryService } from 'src/restaurant/category.service';
-import { DishService } from 'src/restaurant/dish.service';
-import { RestaurantService } from 'src/restaurant/restaurant.service';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import {
@@ -19,20 +16,19 @@ import {
 } from './shared/data-e2e';
 import {
   clearDB,
+  createCategory,
+  createDish,
+  createOrder,
+  createRestaurant,
   createUserAndGetToken,
   getMockedMailService,
   gqlTest,
 } from './shared/utils-e2e';
 import { MailService } from 'src/mail/mail.service';
-import { OrderService } from 'src/order/order.service';
 import { CreateOrderInput } from 'src/order/dtos/create-order.dto';
 
 describe('Order Module (e2e)', () => {
   let app: INestApplication;
-  let restaurantService: RestaurantService;
-  let dishService: DishService;
-  let categoryService: CategoryService;
-  let orderService: OrderService;
   let usersRepo: Repository<User>;
 
   let customerToken: string;
@@ -50,10 +46,6 @@ describe('Order Module (e2e)', () => {
       .compile();
 
     app = module.createNestApplication();
-    restaurantService = module.get(RestaurantService);
-    dishService = module.get(DishService);
-    categoryService = module.get(CategoryService);
-    orderService = module.get(OrderService);
     usersRepo = module.get(getRepositoryToken(User));
     await app.init();
   });
@@ -63,18 +55,12 @@ describe('Order Module (e2e)', () => {
     ownerToken = await createUserAndGetToken(app, ownerE2E);
     driverToken = await createUserAndGetToken(app, driverE2E);
 
-    await categoryService.createCategory({
-      name: categoryE2E.name,
-      imageUrl: categoryE2E.imageUrl,
-    });
+    await createCategory(app, categoryE2E);
     let owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-    ({ restaurantId } = await restaurantService.createRestaurant(
-      { name: restaurantE2E.name, categorySlug: categoryE2E.slug },
-      owner,
-    ));
+    restaurantId = await createRestaurant(app, restaurantE2E, owner);
 
     owner = await usersRepo.findOneBy({ email: ownerE2E.email });
-    ({ dishId } = await dishService.createDish(dishE2E, owner));
+    dishId = await createDish(app, dishE2E, owner);
   };
 
   const createOrderInput = (): CreateOrderInput => {
@@ -94,7 +80,7 @@ describe('Order Module (e2e)', () => {
   });
 
   describe('createOrder', () => {
-    it('should return error if role is not customer', () => {
+    it('should return error if role is not customer', async () => {
       return gqlTest(
         app,
         `
@@ -292,8 +278,7 @@ describe('Order Module (e2e)', () => {
 
     it('should return orders', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      await orderService.createOrder(orderInput, customer);
+      await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
@@ -389,8 +374,7 @@ describe('Order Module (e2e)', () => {
 
     it('should return error if not accessible', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      const { orderId } = await orderService.createOrder(orderInput, customer);
+      const orderId = await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
@@ -427,8 +411,7 @@ describe('Order Module (e2e)', () => {
 
     it('should return order', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      const { orderId } = await orderService.createOrder(orderInput, customer);
+      const orderId = await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
@@ -520,8 +503,7 @@ describe('Order Module (e2e)', () => {
 
     it('should return error if not accessible', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      const { orderId } = await orderService.createOrder(orderInput, customer);
+      const orderId = await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
@@ -555,8 +537,7 @@ describe('Order Module (e2e)', () => {
 
     it('should return error if not allowed', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      const { orderId } = await orderService.createOrder(orderInput, customer);
+      const orderId = await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
@@ -590,8 +571,7 @@ describe('Order Module (e2e)', () => {
 
     it('should edit order', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      const { orderId } = await orderService.createOrder(orderInput, customer);
+      const orderId = await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
@@ -678,8 +658,7 @@ describe('Order Module (e2e)', () => {
 
     it('should pickup order', async () => {
       const customer = await usersRepo.findOneBy({ email: customerE2E.email });
-      const orderInput = createOrderInput();
-      const { orderId } = await orderService.createOrder(orderInput, customer);
+      const orderId = await createOrder(app, createOrderInput(), customer);
 
       return gqlTest(
         app,
