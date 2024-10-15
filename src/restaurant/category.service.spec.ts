@@ -7,7 +7,7 @@ import { CategoryService } from './category.service';
 import { CreateCategoryInput } from './dtos/create-category.dto';
 import { DeleteCategoryInput } from './dtos/delete-category.dto';
 import { SeeCategoryInput } from './dtos/see-category.dto';
-import { Category } from './entities/catergory.entitiy';
+import { Category } from './entities/catergory.entity';
 import { Restaurant } from './entities/restaurant.entity';
 
 const getMockedRepo = () => ({

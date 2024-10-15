@@ -1,5 +1,5 @@
 import { Order, OrderStatus } from 'src/order/entities/order.entity';
-import { Category } from 'src/restaurant/entities/catergory.entitiy';
+import { Category } from 'src/restaurant/entities/catergory.entity';
 import { Dish } from 'src/restaurant/entities/dish.entity';
 import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 import { Promotion } from 'src/user/entities/promotion.entity';

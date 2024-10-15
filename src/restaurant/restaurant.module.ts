@@ -4,7 +4,7 @@ import { CategoryResolver } from './category.resolver';
 import { CategoryService } from './category.service';
 import { DishResolver } from './dish.resolver';
 import { DishService } from './dish.service';
-import { Category } from './entities/catergory.entitiy';
+import { Category } from './entities/catergory.entity';
 import { Dish } from './entities/dish.entity';
 import { Restaurant } from './entities/restaurant.entity';
 import { RestaurantResolver } from './restaurant.resolver';

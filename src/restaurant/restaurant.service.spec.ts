@@ -12,7 +12,7 @@ import { EditRestaurantInput } from './dtos/edit-restaurant.dto';
 import { SearchRestaurantInput } from './dtos/search-restaurant.dto';
 import { SeeRestaurantInput } from './dtos/see-restaurant.dto';
 import { SeeRestaurantsInput } from './dtos/see-restaurants.dto';
-import { Category } from './entities/catergory.entitiy';
+import { Category } from './entities/catergory.entity';
 import { Restaurant } from './entities/restaurant.entity';
 import { RestaurantService } from './restaurant.service';
 

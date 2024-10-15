@@ -12,7 +12,7 @@ import {
 } from './dtos/delete-category.dto';
 import { SeeCategoriesOutput } from './dtos/see-categories.dto';
 import { SeeCategoryInput, SeeCategoryOutput } from './dtos/see-category.dto';
-import { Category } from './entities/catergory.entitiy';
+import { Category } from './entities/catergory.entity';
 import { Restaurant } from './entities/restaurant.entity';
 
 @Injectable()
