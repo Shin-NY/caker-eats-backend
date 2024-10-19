@@ -6,10 +6,11 @@ import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 import { Promotion } from './entities/promotion.entity';
 import { User } from './entities/user.entity';
 import { Verification } from './entities/verification.entity';
-import { PromotionResolver } from './promotion.resolver';
-import { PromotionService } from './promotion.service';
 import { UserResolver } from './user.resolver';
 import { UserService } from './user.service';
+import { HashService } from './hash.service';
+import { PromotionResolver } from './promotion.resolver';
+import { PromotionService } from './promotion.service';
 
 @Module({
   imports: [
@@ -17,7 +18,13 @@ import { UserService } from './user.service';
     JwtModule,
     MailModule,
   ],
-  providers: [UserResolver, UserService, PromotionResolver, PromotionService],
+  providers: [
+    UserResolver,
+    UserService,
+    PromotionResolver,
+    PromotionService,
+    HashService,
+  ],
   exports: [UserService],
 })
 export class UserModule {}

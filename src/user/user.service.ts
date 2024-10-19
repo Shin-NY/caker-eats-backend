@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserInput, CreateUserOutput } from './dtos/create-user.dto';
 import { User, UserRole } from './entities/user.entity';
-import * as bcrypt from 'bcrypt';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { JwtService } from 'src/jwt/jwt.service';
 import { EditUserInput, EditUserOutput } from './dtos/edit-user.dto';
@@ -11,6 +10,7 @@ import { DeleteUserOutput } from './dtos/delete-user.dto';
 import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 import { Verification } from './entities/verification.entity';
 import { MailService } from 'src/mail/mail.service';
+import { HashService } from './hash.service';
 
 export const HASH_ROUNDS = 10;
 
@@ -22,6 +22,7 @@ export class UserService {
     private readonly verificationsRepository: Repository<Verification>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly hashService: HashService,
   ) {}
   findById(id: number): Promise<User> {
     return this.usersRepository.findOneBy({ id });
@@ -41,7 +42,7 @@ export class UserService {
       });
       if (existingUser) return { ok: false, error: 'Email already exists.' };
 
-      const hashed = await bcrypt.hash(input.password, HASH_ROUNDS);
+      const hashed = await this.hashService.hash(input.password);
       await this.usersRepository.save(
         this.usersRepository.create({ ...input, password: hashed }),
       );
@@ -73,7 +74,10 @@ export class UserService {
         return { ok: false, error: 'User not found.' };
       }
 
-      const isValid = await bcrypt.compare(input.password, user.password);
+      const isValid = await this.hashService.compare(
+        input.password,
+        user.password,
+      );
       if (!isValid) {
         return { ok: false, error: 'Invalid password.' };
       }
@@ -95,8 +99,7 @@ export class UserService {
         if (existingUser) return { ok: false, error: 'Email already exists.' };
       }
       let hashed;
-      if (input?.password)
-        hashed = await bcrypt.hash(input.password, HASH_ROUNDS);
+      if (input?.password) hashed = await this.hashService.hash(input.password);
       await this.usersRepository.save({
         id: user.id,
         ...(input?.email && { email: input.email }),

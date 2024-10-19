@@ -1,23 +1,16 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { HASH_ROUNDS, UserService } from './user.service';
 import { User, UserRole } from './entities/user.entity';
 import { Verification } from './entities/verification.entity';
 import { JwtService } from 'src/jwt/jwt.service';
 import { MailService } from 'src/mail/mail.service';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import { HASHED_PASSWORD, customerTestData } from 'src/test/test.data';
+import { UserService } from './user.service';
+import { HashService } from './hash.service';
 
 const PASSWORD = 'password';
 const TOKEN = 'token';
-
-jest.mock('bcrypt', () => {
-  return {
-    hash: jest.fn(() => HASHED_PASSWORD),
-    compare: jest.fn(),
-  };
-});
 
 const getMockedRepository = () => ({
   findOneBy: jest.fn(),
@@ -35,6 +28,11 @@ const getMockedMailService = () => ({
   sendVerificationEmail: jest.fn(),
 });
 
+const getMockedHashService = () => ({
+  hash: jest.fn(() => HASHED_PASSWORD),
+  compare: jest.fn(),
+});
+
 describe('UserService', () => {
   const verificationData = {
     code: 'code',
@@ -42,6 +40,7 @@ describe('UserService', () => {
   let userService: UserService;
   let mailService: Record<keyof MailService, jest.Mock>;
   let jwtService: Record<keyof JwtService, jest.Mock>;
+  let hashService: Record<keyof HashService, jest.Mock>;
   let usersRepository: Record<keyof Repository<User>, jest.Mock>;
   let verificationsRepository: Record<
     keyof Repository<Verification>,
@@ -59,17 +58,15 @@ describe('UserService', () => {
         },
         { provide: JwtService, useValue: getMockedJwtService() },
         { provide: MailService, useValue: getMockedMailService() },
+        { provide: HashService, useValue: getMockedHashService() },
       ],
     }).compile();
     userService = module.get(UserService);
     mailService = module.get(MailService);
     jwtService = module.get(JwtService);
+    hashService = module.get(HashService);
     usersRepository = module.get(getRepositoryToken(User));
     verificationsRepository = module.get(getRepositoryToken(Verification));
-  });
-
-  afterEach(() => {
-    (bcrypt.hash as jest.Mock).mockClear();
   });
 
   it('should be defined', () => {
@@ -122,8 +119,8 @@ describe('UserService', () => {
       verificationsRepository.create.mockReturnValueOnce(verificationData);
       verificationsRepository.save.mockResolvedValueOnce(verificationData);
       const result = await userService.createUser(input);
-      expect(bcrypt.hash).toBeCalledTimes(1);
-      expect(bcrypt.hash).toBeCalledWith(input.password, HASH_ROUNDS);
+      expect(hashService.hash).toBeCalledTimes(1);
+      expect(hashService.hash).toBeCalledWith(input.password);
       expect(usersRepository.create).toBeCalledTimes(1);
       expect(usersRepository.create).toBeCalledWith({
         ...input,
@@ -168,10 +165,10 @@ describe('UserService', () => {
 
     it('should return an error if password is invalid', async () => {
       usersRepository.findOneBy.mockResolvedValueOnce(customerTestData);
-      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+      hashService.compare.mockResolvedValueOnce(false);
       const result = await userService.login(input);
-      expect(bcrypt.compare).toBeCalledTimes(1);
-      expect(bcrypt.compare).toBeCalledWith(
+      expect(hashService.compare).toBeCalledTimes(1);
+      expect(hashService.compare).toBeCalledWith(
         input.password,
         customerTestData.password,
       );
@@ -180,7 +177,7 @@ describe('UserService', () => {
 
     it('should return a token', async () => {
       usersRepository.findOneBy.mockResolvedValueOnce(customerTestData);
-      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+      hashService.compare.mockResolvedValueOnce(true);
       jwtService.sign.mockReturnValueOnce(TOKEN);
       const result = await userService.login(input);
       expect(jwtService.sign).toBeCalledTimes(1);
@@ -216,8 +213,8 @@ describe('UserService', () => {
       verificationsRepository.create.mockReturnValueOnce(verificationData);
       verificationsRepository.save.mockResolvedValueOnce(verificationData);
       const result = await userService.editUser(input, customerTestData);
-      expect(bcrypt.hash).toBeCalledTimes(1);
-      expect(bcrypt.hash).toBeCalledWith(input.password, HASH_ROUNDS);
+      expect(hashService.hash).toBeCalledTimes(1);
+      expect(hashService.hash).toBeCalledWith(input.password);
       expect(usersRepository.save).toBeCalledTimes(1);
       expect(usersRepository.save).toBeCalledWith({
         id: customerTestData.id,

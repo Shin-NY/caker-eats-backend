@@ -4,14 +4,6 @@ import { JwtService } from './jwt.service';
 import * as jwt from 'jsonwebtoken';
 
 const JWT_KEY = 'JWT_KEY';
-const TOKEN = 'TOKEN';
-
-jest.mock('jsonwebtoken', () => {
-  return {
-    sign: jest.fn(() => TOKEN),
-    verify: jest.fn(),
-  };
-});
 
 const getMockedConfigService = () => ({
   get: jest.fn(() => JWT_KEY),
@@ -19,6 +11,7 @@ const getMockedConfigService = () => ({
 
 describe('JwtService', () => {
   const payload = { userId: 1 };
+  const token = jwt.sign(payload, JWT_KEY);
   let jwtService: JwtService;
 
   beforeEach(async () => {
@@ -37,26 +30,28 @@ describe('JwtService', () => {
 
   describe('sign', () => {
     it('should return a token', () => {
+      const spySign = jest.spyOn(jwt, 'sign');
       const result = jwtService.sign(payload);
-      expect(jwt.sign).toBeCalledTimes(1);
-      expect(jwt.sign).toBeCalledWith(payload, JWT_KEY);
-      expect(result).toEqual(TOKEN);
+      expect(spySign).toBeCalledTimes(1);
+      expect(spySign).toBeCalledWith(payload, JWT_KEY);
+      expect(result).toEqual(token);
     });
   });
 
   describe('verify', () => {
     it('should return true if token is valid', () => {
-      (jwt.verify as jest.Mock).mockReturnValueOnce(true);
-      const result = jwtService.verify(TOKEN);
-      expect(jwt.verify).toBeCalledTimes(1);
-      expect(jwt.verify).toBeCalledWith(TOKEN, JWT_KEY);
-      expect(result).toEqual(true);
+      const spySign = jest.spyOn(jwt, 'verify');
+      const result = jwtService.verify({ token });
+      expect(spySign).toBeCalledTimes(1);
+      expect(spySign).toBeCalledWith(token, JWT_KEY);
+      expect(result.ok).toEqual(true);
+      expect(result.result).toMatchObject(payload);
     });
 
     it('should return false if token is invalid', () => {
-      (jwt.verify as jest.Mock).mockReturnValueOnce(false);
-      const result = jwtService.verify(TOKEN);
-      expect(result).toEqual(false);
+      const result = jwtService.verify({ token: 'invalid-token' });
+      expect(result.ok).toEqual(false);
+      expect(result.error).toEqual(expect.any(String));
     });
   });
 });
