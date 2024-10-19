@@ -5,15 +5,15 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import * as Joi from 'joi';
-import { JwtModule } from './jwt/jwt.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { OrderModule } from './order/order.module';
 import { SharedModule } from './shared/shared.module';
-import { HEADER_TOKEN } from './jwt/jwt.constants';
 import { UploadModule } from './upload/upload.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { JwtModule } from '@nestjs/jwt';
+import { HEADER_TOKEN } from './auth/auth.constants';
 
 @Module({
   imports: [
@@ -55,7 +55,6 @@ import { ScheduleModule } from '@nestjs/schedule';
       },
     }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
@@ -66,9 +65,18 @@ import { ScheduleModule } from '@nestjs/schedule';
       }),
       inject: [ConfigService],
     }),
+    JwtModule.registerAsync({
+      global: true,
+      useFactory: (configService: ConfigService) => ({
+        secretOrPrivateKey: configService.get('JWT_KEY'),
+        signOptions: {
+          expiresIn: '7d',
+        },
+      }),
+      inject: [ConfigService],
+    }),
     ScheduleModule.forRoot(),
     UserModule,
-    JwtModule,
     AuthModule,
     MailModule,
     RestaurantModule,

@@ -1,5 +1,4 @@
 import { INestApplication } from '@nestjs/common';
-import { HEADER_TOKEN } from 'src/jwt/jwt.constants';
 import { CreateUserInput } from 'src/user/dtos/create-user.dto';
 import { UserService } from 'src/user/user.service';
 import * as request from 'supertest';
@@ -16,6 +15,7 @@ import { DishService } from 'src/restaurant/dish.service';
 import { CreateDishInput } from 'src/restaurant/dtos/create-dish.dto';
 import { CreateOrderInput } from 'src/order/dtos/create-order.dto';
 import { OrderService } from 'src/order/order.service';
+import { HEADER_TOKEN } from 'src/auth/auth.constants';
 
 export const gqlTest = (
   app: INestApplication,

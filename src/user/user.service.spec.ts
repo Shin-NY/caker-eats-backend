@@ -2,12 +2,12 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User, UserRole } from './entities/user.entity';
 import { Verification } from './entities/verification.entity';
-import { JwtService } from 'src/jwt/jwt.service';
 import { MailService } from 'src/mail/mail.service';
 import { Repository } from 'typeorm';
 import { HASHED_PASSWORD, customerTestData } from 'src/test/test.data';
 import { UserService } from './user.service';
 import { HashService } from './hash.service';
+import { JwtService } from '@nestjs/jwt';
 
 const PASSWORD = 'password';
 const TOKEN = 'token';

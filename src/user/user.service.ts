@@ -4,13 +4,13 @@ import { Repository } from 'typeorm';
 import { CreateUserInput, CreateUserOutput } from './dtos/create-user.dto';
 import { User, UserRole } from './entities/user.entity';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
-import { JwtService } from 'src/jwt/jwt.service';
 import { EditUserInput, EditUserOutput } from './dtos/edit-user.dto';
 import { DeleteUserOutput } from './dtos/delete-user.dto';
 import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 import { Verification } from './entities/verification.entity';
 import { MailService } from 'src/mail/mail.service';
 import { HashService } from './hash.service';
+import { JwtService } from '@nestjs/jwt';
 
 export const HASH_ROUNDS = 10;
 

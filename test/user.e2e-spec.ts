@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
-import { HEADER_TOKEN } from 'src/jwt/jwt.constants';
 import { Repository } from 'typeorm';
 import { Verification } from 'src/user/entities/verification.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -26,6 +25,7 @@ import {
 } from './shared/utils-e2e';
 import { User } from 'src/user/entities/user.entity';
 import { MailService } from 'src/mail/mail.service';
+import { HEADER_TOKEN } from 'src/auth/auth.constants';
 
 describe('User Module (e2e)', () => {
   let app: INestApplication;
