@@ -1,4 +1,4 @@
-import { Field, InputType, ObjectType, PickType } from '@nestjs/graphql';
+import { InputType, ObjectType, PickType } from '@nestjs/graphql';
 import { SharedOutput } from 'src/shared/shared.dto';
 import { Promotion } from '../entities/promotion.entity';
 

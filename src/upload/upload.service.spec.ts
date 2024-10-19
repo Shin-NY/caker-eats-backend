@@ -1,6 +1,5 @@
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import { customerTestData } from 'src/test/test.data';
 import { UploadService } from './upload.service';
 import * as AWS from 'aws-sdk';
 
@@ -42,9 +41,7 @@ describe('UploadService', () => {
       (AWS.S3.prototype.upload as jest.Mock).mockReturnValueOnce({
         promise: mockedUploadPromise,
       });
-      const result = await uploadService.uploadImage(
-        testImage,
-      );
+      const result = await uploadService.uploadImage(testImage);
       expect(AWS.S3).toBeCalledTimes(1);
       expect(AWS.S3).toBeCalledWith({
         accessKeyId: ENVIRONMENT_VAR,
@@ -64,9 +61,7 @@ describe('UploadService', () => {
 
     it('should return error if it fails', async () => {
       (AWS.S3.prototype.upload as jest.Mock).mockReturnValueOnce(new Error());
-      const result = await uploadService.uploadImage(
-        testImage,
-      );
+      const result = await uploadService.uploadImage(testImage);
       expect(result).toEqual({ ok: false, error: 'Cannot upload an image.' });
     });
   });
