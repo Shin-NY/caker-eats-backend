@@ -24,7 +24,7 @@ import {
   SeeRestaurantsInput,
   SeeRestaurantsOutput,
 } from './dtos/see-restaurants.dto';
-import { Category } from './entities/catergory.entitiy';
+import { Category } from './entities/catergory.entity';
 import { Restaurant } from './entities/restaurant.entity';
 
 @Injectable()

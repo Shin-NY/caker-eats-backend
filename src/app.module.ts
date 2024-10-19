@@ -1,25 +1,18 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import * as Joi from 'joi';
-import { User } from './user/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { AuthModule } from './auth/auth.module';
-import { Verification } from './user/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
-import { Restaurant } from './restaurant/entities/restaurant.entity';
-import { Category } from './restaurant/entities/catergory.entitiy';
-import { Dish } from './restaurant/entities/dish.entity';
 import { OrderModule } from './order/order.module';
-import { Order } from './order/entities/order.entity';
 import { SharedModule } from './shared/shared.module';
 import { HEADER_TOKEN } from './jwt/jwt.constants';
 import { UploadModule } from './upload/upload.module';
-import { Promotion } from './user/entities/promotion.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -61,20 +54,17 @@ import { ScheduleModule } from '@nestjs/schedule';
         }
       },
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
-      entities: [
-        User,
-        Verification,
-        Restaurant,
-        Category,
-        Dish,
-        Order,
-        Promotion,
-      ],
-      synchronize:
-        process.env.NODE_ENV == 'development' || process.env.NODE_ENV == 'test',
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get('DATABASE_URL'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize:
+          configService.get('NODE_ENV') == 'development' ||
+          configService.get('NODE_ENV') == 'test',
+      }),
+      inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
     UserModule,

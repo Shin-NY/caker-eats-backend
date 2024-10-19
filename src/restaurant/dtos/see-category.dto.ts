@@ -4,7 +4,7 @@ import {
   PaginationOutput,
   SharedOutput,
 } from 'src/shared/shared.dto';
-import { Category } from '../entities/catergory.entitiy';
+import { Category } from '../entities/catergory.entity';
 
 @InputType()
 export class SeeCategoryInput extends PaginationInput {

@@ -11,7 +11,7 @@ import {
   OneToOne,
   RelationId,
 } from 'typeorm';
-import { Category } from './catergory.entitiy';
+import { Category } from './catergory.entity';
 import { Dish } from './dish.entity';
 
 @Entity()
