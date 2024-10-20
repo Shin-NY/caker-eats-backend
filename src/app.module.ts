@@ -68,7 +68,7 @@ import { HEADER_TOKEN } from './auth/auth.constants';
     JwtModule.registerAsync({
       global: true,
       useFactory: (configService: ConfigService) => ({
-        secretOrPrivateKey: configService.get('JWT_KEY'),
+        secret: configService.get('JWT_KEY'),
         signOptions: {
           expiresIn: '7d',
         },

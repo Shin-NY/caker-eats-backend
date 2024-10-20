@@ -11,6 +11,7 @@ import { Verification } from './entities/verification.entity';
 import { MailService } from 'src/mail/mail.service';
 import { HashService } from './hash.service';
 import { JwtService } from '@nestjs/jwt';
+import { v4 as uuidv4 } from 'uuid';
 
 export const HASH_ROUNDS = 10;
 
@@ -50,7 +51,7 @@ export class UserService {
       if (input.role != UserRole.Admin) {
         const verification = await this.verificationsRepository.save(
           this.verificationsRepository.create({
-            code: Date.now() + '',
+            code: uuidv4(),
             email: input.email,
           }),
         );
@@ -109,7 +110,7 @@ export class UserService {
         this.verificationsRepository.delete({ email: user.email });
         const verification = await this.verificationsRepository.save(
           this.verificationsRepository.create({
-            code: Date.now() + '',
+            code: uuidv4(),
             email: input.email,
           }),
         );
@@ -149,7 +150,8 @@ export class UserService {
       await this.usersRepository.save(user);
       await this.verificationsRepository.delete({ code: input.code });
       return { ok: true };
-    } catch {
+    } catch (e) {
+      console.log(e);
       return { ok: false, error: 'Cannot verify email.' };
     }
   }
