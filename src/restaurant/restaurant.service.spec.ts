@@ -97,6 +97,7 @@ describe('RestaurantService', () => {
       restaurantsRepo.findOneBy.mockResolvedValueOnce(null);
       categoriesRepo.findOneBy.mockResolvedValueOnce(categoryTestData);
       restaurantsRepo.create.mockReturnValueOnce(restaurantTestData);
+      restaurantsRepo.save.mockResolvedValueOnce(restaurantTestData);
       const result = await restaurantService.createRestaurant(input, {
         ...ownerTestData,
         restaurantId: null,
@@ -109,7 +110,7 @@ describe('RestaurantService', () => {
       });
       expect(restaurantsRepo.save).toBeCalledTimes(1);
       expect(restaurantsRepo.save).toBeCalledWith(restaurantTestData);
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ ok: true, restaurantId: restaurantTestData.id });
     });
 
     it('should return an error if it fails', async () => {

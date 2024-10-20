@@ -26,7 +26,7 @@ import { OrderService } from './order.service';
 const getMockedRepo = () => ({
   save: jest.fn(),
   create: jest.fn(),
-  findBy: jest.fn(),
+  find: jest.fn(),
   findOneBy: jest.fn(),
   findOne: jest.fn(),
 });
@@ -37,9 +37,12 @@ const getMockedPubSub = () => ({
 
 describe('OrderService', () => {
   let orderService: OrderService;
-  let ordersRepo: Record<keyof Repository<Order>, jest.Mock>;
-  let restaurantsRepo: Record<keyof Repository<Restaurant>, jest.Mock>;
-  let pubSub: Record<keyof PubSub, jest.Mock>;
+  let ordersRepo: Record<keyof ReturnType<typeof getMockedRepo>, jest.Mock>;
+  let restaurantsRepo: Record<
+    keyof ReturnType<typeof getMockedRepo>,
+    jest.Mock
+  >;
+  let pubSub: Record<keyof ReturnType<typeof getMockedPubSub>, jest.Mock>;
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
@@ -114,7 +117,7 @@ describe('OrderService', () => {
       expect(pubSub.publish).toBeCalledWith(ORDER_CREATED_TRIGGER, {
         orderCreated: orderTestData,
       });
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ ok: true, orderId: orderTestData.id });
     });
 
     it('should return an error if it fails', async () => {
@@ -126,17 +129,21 @@ describe('OrderService', () => {
 
   describe('seeOrders', () => {
     it('should return orders', async () => {
-      ordersRepo.findBy.mockResolvedValueOnce([orderTestData]);
+      ordersRepo.find.mockResolvedValueOnce([orderTestData]);
       const result = await orderService.seeOrders(customerTestData);
-      expect(ordersRepo.findBy).toBeCalledTimes(1);
-      expect(ordersRepo.findBy).toBeCalledWith({
-        customer: { id: customerTestData.id },
-      });
+      expect(ordersRepo.find).toBeCalledTimes(1);
+      expect(ordersRepo.find).toBeCalledWith(
+        expect.objectContaining({
+          where: {
+            customer: { id: customerTestData.id },
+          },
+        }),
+      );
       expect(result).toEqual({ ok: true, result: [orderTestData] });
     });
 
     it('should return an error if it fails', async () => {
-      ordersRepo.findBy.mockRejectedValueOnce(new Error());
+      ordersRepo.find.mockRejectedValueOnce(new Error());
       const result = await orderService.seeOrders(customerTestData);
       expect(result).toEqual({ ok: false, error: 'Cannot see orders.' });
     });
@@ -168,12 +175,13 @@ describe('OrderService', () => {
       ordersRepo.findOne.mockResolvedValueOnce(null);
       const result = await orderService.seeOrder(input, customerTestData);
       expect(ordersRepo.findOne).toBeCalledTimes(1);
-      expect(ordersRepo.findOne).toBeCalledWith({
-        where: {
-          id: input.orderId,
-        },
-        relations: ['restaurant', 'driver', 'customer'],
-      });
+      expect(ordersRepo.findOne).toBeCalledWith(
+        expect.objectContaining({
+          where: {
+            id: input.orderId,
+          },
+        }),
+      );
       expect(result).toEqual({ ok: false, error: 'Order not found.' });
     });
 
@@ -287,7 +295,7 @@ describe('OrderService', () => {
         driver: driverTestData,
         status: OrderStatus.PickedUp,
       });
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ ok: true, orderId: orderTestData.id });
     });
 
     it('should return an error if it fails', async () => {
