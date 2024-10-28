@@ -82,4 +82,8 @@ export class Order extends SharedEntity {
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.Pending })
   @Field(type => OrderStatus, { defaultValue: OrderStatus.Pending })
   status: OrderStatus;
+
+  @Column()
+  @Field(type => String)
+  txId: string;
 }

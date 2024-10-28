@@ -5,7 +5,7 @@ import { Order } from '../entities/order.entity';
 @InputType()
 export class CreateOrderInput extends PickType(
   Order,
-  ['dishes', 'location'],
+  ['dishes', 'location', 'txId'],
   InputType,
 ) {
   @Field(type => Number)

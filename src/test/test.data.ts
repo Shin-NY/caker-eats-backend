@@ -100,6 +100,7 @@ export const orderTestData: Order = {
   customerId: customerTestData.id,
   driverId: null,
   status: OrderStatus.Pending,
+  txId: 'txId',
   createdAt: new Date(),
   updatedAt: new Date(),
 };
